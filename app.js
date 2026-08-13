@@ -1,4 +1,53 @@
+      if (isToday(c.y, c.m, c.d)) cell.classList.add("today");
+      if (dayEvents.length) cell.classList.add("has-events");
 
+      const num = document.createElement("div");
+      num.className = "day-num";
+      num.textContent = c.d;
+      cell.appendChild(num);
+
+      if (dayEvents.length) {
+        const list = document.createElement("div");
+        list.className = "day-events";
+        const shown = dayEvents.slice(0, 2);
+        shown.forEach((ev) => {
+          const chip = document.createElement("div");
+          chip.className = "event-chip";
+          chip.textContent = ev.title;
+          list.appendChild(chip);
+        });
+        if (dayEvents.length > shown.length) {
+          const more = document.createElement("div");
+          more.className = "event-more";
+          more.textContent = `+${dayEvents.length - shown.length} more`;
+          list.appendChild(more);
+        }
+        cell.appendChild(list);
+      }
+
+      cell.addEventListener("click", () => openModal(c.y, c.m, c.d));
+      grid.appendChild(cell);
+    });
+  }
+
+  /* ============ Modal ============ */
+  const modalOverlay = document.getElementById("modalOverlay");
+  const modalDate = document.getElementById("modalDate");
+  const modalEventList = document.getElementById("modalEventList");
+  const modalAddForm = document.getElementById("modalAddForm");
+  const modalEventTitle = document.getElementById("modalEventTitle");
+  const modalEventTime = document.getElementById("modalEventTime");
+  const modalClose = document.getElementById("modalClose");
+
+  function openModal(y, m, d) {
+    selectedDateStr = toKey(y, m, d);
+    modalDate.textContent = fmtDateLong(y, m, d);
+    renderModalEvents();
+    modalOverlay.classList.remove("hidden");
+    modalEventTitle.value = "";
+    modalEventTime.value = "";
+    modalEventTitle.focus();
+  }
 
   function closeModal() {
     modalOverlay.classList.add("hidden");
