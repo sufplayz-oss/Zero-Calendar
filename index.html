@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendar</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== Login screen ===== -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <h1>Calendar</h1>
+    </div>
+    <p class="hint">Sign in to sync your calendar across devices</p>
+    <form id="loginForm">
+      <input id="loginEmail" type="email" placeholder="Email" autocomplete="username" required />
+      <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" required />
+      <button type="submit" class="btn btn-primary login-submit">Sign in</button>
+      <div id="loginError" class="login-error"></div>
+    </form>
+  </div>
+</div>
+
+<div class="app hidden" id="appRoot">
+
+  <!-- ===== Main calendar ===== -->
+  <main class="main">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <h1 id="monthLabel">Month Year</h1>
+      </div>
+      <div class="nav-controls">
+        <span id="syncStatus" class="sync-status synced">Synced</span>
+        <button id="todayBtn" class="btn btn-ghost">Today</button>
+        <button id="prevBtn" class="btn btn-icon" aria-label="Previous month">&#8249;</button>
+        <button id="nextBtn" class="btn btn-icon" aria-label="Next month">&#8250;</button>
+        <button id="themeToggle" class="btn btn-icon" aria-label="Toggle theme">&#9789;</button>
+        <button id="signOutBtn" class="btn btn-icon" aria-label="Sign out">&#9211;</button>
+      </div>
+    </header>
+
+    <div class="weekdays">
+      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+
+    <div id="grid" class="grid"></div>
+  </main>
+
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar">
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Quick Add</h2>
+        <span class="hint">just type it naturally</span>
+      </div>
+      <div id="chatLog" class="chat-log"></div>
+      <form id="quickAddForm" class="quick-add-form">
+        <input id="quickAddInput" type="text" autocomplete="off"
+               placeholder="e.g. Dentist tomorrow at 3pm" />
+        <button type="submit" class="btn btn-primary" aria-label="Add event">&#8593;</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Weekly Schedule</h2>
+        <span class="hint">click a day to edit</span>
+      </div>
+      <div id="weeklySchedule" class="weekly-schedule"></div>
+    </section>
+
+  </aside>
+</div>
+
+<!-- ===== Day detail modal ===== -->
+<div id="modalOverlay" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalDate">Date</h3>
+      <button id="modalClose" class="btn btn-icon" aria-label="Close">&times;</button>
+    </div>
+    <div id="modalEventList" class="modal-event-list"></div>
+    <form id="modalAddForm" class="modal-add-form">
+      <input id="modalEventTitle" type="text" placeholder="Event title" autocomplete="off" />
+      <input id="modalEventTime" type="time" />
+      <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
