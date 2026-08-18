@@ -35,10 +35,12 @@
         <h1 id="monthLabel">Month Year</h1>
       </div>
       <div class="nav-controls">
-        <span id="syncStatus" class="sync-status synced">Synced</span>
+        <span id="syncStatus" class="sync-status synced"><span class="dot"></span>Synced</span>
         <button id="todayBtn" class="btn btn-ghost">Today</button>
-        <button id="prevBtn" class="btn btn-icon" aria-label="Previous month">&#8249;</button>
-        <button id="nextBtn" class="btn btn-icon" aria-label="Next month">&#8250;</button>
+        <div class="btn-group">
+          <button id="prevBtn" class="btn btn-icon" aria-label="Previous month">&#8249;</button>
+          <button id="nextBtn" class="btn btn-icon" aria-label="Next month">&#8250;</button>
+        </div>
         <button id="themeToggle" class="btn btn-icon" aria-label="Toggle theme">&#9789;</button>
         <button id="signOutBtn" class="btn btn-icon" aria-label="Sign out">&#9211;</button>
       </div>
@@ -48,7 +50,9 @@
       <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
     </div>
 
-    <div id="grid" class="grid"></div>
+    <div id="calendarBody" class="calendar-body">
+      <div id="grid" class="grid"></div>
+    </div>
   </main>
 
   <!-- ===== Sidebar ===== -->
@@ -65,6 +69,14 @@
                placeholder="e.g. Dentist tomorrow at 3pm" />
         <button type="submit" class="btn btn-primary" aria-label="Add event">&#8593;</button>
       </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Upcoming</h2>
+        <span class="hint">next on your calendar</span>
+      </div>
+      <div id="upcomingList" class="upcoming-list"></div>
     </section>
 
     <section class="panel">

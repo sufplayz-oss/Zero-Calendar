@@ -2,6 +2,7 @@ import { firebaseConfig } from "./firebase-config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut,
+  setPersistence, browserLocalPersistence,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, onSnapshot,
@@ -16,6 +17,7 @@ import {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    setPersistence(auth, browserLocalPersistence).catch((e) => console.error(e));
   } catch (e) {
     console.error(e);
   }
@@ -222,6 +224,7 @@ import {
         }
         renderCalendar();
         renderWeekly();
+        renderUpcoming();
         if (selectedDateStr) renderModalEvents();
         setSyncStatus("synced");
       },
@@ -261,7 +264,7 @@ import {
   const monthLabel = document.getElementById("monthLabel");
   const grid = document.getElementById("grid");
 
-  function renderCalendar() {
+  function renderCalendar(direction) {
     monthLabel.textContent = `${monthNames[viewMonth]} ${viewYear}`;
     grid.innerHTML = "";
 
@@ -297,6 +300,7 @@ import {
 
       const cell = document.createElement("div");
       cell.className = "day-cell";
+      cell.dataset.key = key;
       if (c.outside) cell.classList.add("outside");
       if (isToday(c.y, c.m, c.d)) cell.classList.add("today");
       if (dayEvents.length) cell.classList.add("has-events");
@@ -313,7 +317,9 @@ import {
         shown.forEach((ev) => {
           const chip = document.createElement("div");
           chip.className = "event-chip";
-          chip.textContent = ev.title;
+          const span = document.createElement("span");
+          span.textContent = ev.title;
+          chip.appendChild(span);
           list.appendChild(chip);
         });
         if (dayEvents.length > shown.length) {
@@ -327,6 +333,70 @@ import {
 
       cell.addEventListener("click", () => openModal(c.y, c.m, c.d));
       grid.appendChild(cell);
+    });
+
+    if (direction) {
+      grid.style.setProperty("--turn-dir", direction > 0 ? "10px" : "-10px");
+      grid.classList.remove("turning");
+      void grid.offsetWidth;
+      grid.classList.add("turning");
+    }
+  }
+
+  function flashCell(dateKey) {
+    const cell = grid.querySelector(`.day-cell[data-key="${dateKey}"]`);
+    if (!cell) return;
+    cell.classList.remove("just-added");
+    void cell.offsetWidth; // restart animation
+    cell.classList.add("just-added");
+  }
+
+  /* ============ Upcoming agenda ============ */
+  const upcomingList = document.getElementById("upcomingList");
+
+  function renderUpcoming() {
+    const todayKey = toKey(today.getFullYear(), today.getMonth(), today.getDate());
+    const items = [];
+    for (const dateKey of Object.keys(events)) {
+      if (dateKey < todayKey) continue;
+      for (const ev of events[dateKey]) {
+        items.push({ dateKey, ...ev });
+      }
+    }
+    items.sort((a, b) => {
+      if (a.dateKey !== b.dateKey) return a.dateKey.localeCompare(b.dateKey);
+      return (a.time || "99:99").localeCompare(b.time || "99:99");
+    });
+
+    upcomingList.innerHTML = "";
+    if (!items.length) {
+      const empty = document.createElement("div");
+      empty.className = "upcoming-empty";
+      empty.textContent = "Nothing coming up";
+      upcomingList.appendChild(empty);
+      return;
+    }
+
+    items.slice(0, 6).forEach((ev) => {
+      const [y, m, d] = ev.dateKey.split("-").map(Number);
+      const item = document.createElement("div");
+      item.className = "upcoming-item";
+      const isToday = ev.dateKey === todayKey;
+      item.innerHTML = `
+        <div class="upcoming-date">${isToday ? "Today" : `${monthNames[m - 1].slice(0, 3)} ${d}`}</div>
+        <div class="upcoming-info">
+          <div class="upcoming-title"></div>
+          <div class="upcoming-time"></div>
+        </div>
+      `;
+      item.querySelector(".upcoming-title").textContent = ev.title;
+      item.querySelector(".upcoming-time").textContent = fmtTime(ev.time);
+      item.addEventListener("click", () => {
+        viewYear = y; viewMonth = m - 1;
+        renderCalendar();
+        openModal(y, m - 1, d);
+      });
+      upcomingList.appendChild(item);
     });
   }
 
@@ -374,6 +444,7 @@ import {
         deleteEvent(selectedDateStr, ev.id);
         renderModalEvents();
         renderCalendar();
+        renderUpcoming();
       });
       modalEventList.appendChild(item);
     });
@@ -394,6 +465,8 @@ import {
     addEvent(selectedDateStr, title, modalEventTime.value || null);
     renderModalEvents();
     renderCalendar();
+    renderUpcoming();
+    flashCell(selectedDateStr);
     modalEventTitle.value = "";
     modalEventTime.value = "";
     modalEventTitle.focus();
@@ -418,7 +491,6 @@ import {
     }
 
     addEvent(parsed.dateKey, parsed.title, parsed.time);
-    renderCalendar();
     if (selectedDateStr === parsed.dateKey) renderModalEvents();
 
     if (!parsed.dateFound) {
@@ -433,8 +505,11 @@ import {
     );
 
     const [yy, mm] = parsed.dateKey.split("-").map(Number);
+    const changedMonth = yy !== viewYear || mm - 1 !== viewMonth;
     viewYear = yy; viewMonth = mm - 1;
-    renderCalendar();
+    renderCalendar(changedMonth ? 1 : 0);
+    renderUpcoming();
+    flashCell(parsed.dateKey);
 
     quickAddInput.value = "";
   });
@@ -469,21 +544,41 @@ import {
   }
 
   /* ============ Nav ============ */
-  document.getElementById("prevBtn").addEventListener("click", () => {
+  function goToPrevMonth() {
     viewMonth--;
     if (viewMonth < 0) { viewMonth = 11; viewYear--; }
-    renderCalendar();
-  });
-  document.getElementById("nextBtn").addEventListener("click", () => {
+    renderCalendar(-1);
+  }
+  function goToNextMonth() {
     viewMonth++;
     if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-    renderCalendar();
-  });
+    renderCalendar(1);
+  }
+  document.getElementById("prevBtn").addEventListener("click", goToPrevMonth);
+  document.getElementById("nextBtn").addEventListener("click", goToNextMonth);
   document.getElementById("todayBtn").addEventListener("click", () => {
+    const changed = viewYear !== today.getFullYear() || viewMonth !== today.getMonth();
     viewYear = today.getFullYear();
     viewMonth = today.getMonth();
-    renderCalendar();
+    renderCalendar(changed ? 1 : 0);
   });
+
+  /* ============ Swipe to change month (touch) ============ */
+  const calendarBody = document.getElementById("calendarBody");
+  let touchStartX = null, touchStartY = null;
+  calendarBody.addEventListener("touchstart", (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  calendarBody.addEventListener("touchend", (e) => {
+    if (touchStartX === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    touchStartX = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) goToNextMonth(); else goToPrevMonth();
+    }
+  }, { passive: true });
 
   /* ============ Theme ============ */
   const themeToggle = document.getElementById("themeToggle");
@@ -538,6 +633,7 @@ import {
         showApp();
         renderCalendar();
         renderWeekly();
+        renderUpcoming();
         listenToData(user.uid);
       } else {
         showLogin();
